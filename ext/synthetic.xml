@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synthetic xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns="http://www.xebialabs.com/deployit/synthetic"
+           xsi:schemaLocation="http://www.xebialabs.com/deployit/synthetic synthetic.xsd">
+
+    <type type="apt.InstalledPackage" extends="generic.ExecutedScript" container-type="overthere.SshHost" deployable-type="apt.PackageSpec">
+      <generate-deployable type="apt.PackageSpec" extends="generic.Resource" />
+      <property name="packageName" />
+      <property name="updateRepository" kind="boolean" required="false" />
+      <property name="createOrder" kind="integer" default="60" label="Install Order" category="Deployment" />
+      <property name="destroyOrder" kind="integer" default="40" label="Uninstall Order" category="Deployment" />
+      <!-- admin properties -->
+      <property name="createScript" hidden="true" default="apt/install-package.sh.ftl" />
+      <property name="destroyScript" hidden="true" default="apt/uninstall-package.sh.ftl" />
+    </type>
+
+    <type-modification type="overthere.SshHost">
+      <property name="javaHome" required="false" category="Java" />
+    </type-modification>
+
+    <type type="go.DeployedAgent" extends="generic.ExecutedScriptWithDerivedArtifact" container-type="overthere.SshHost" deployable-type="go.Agent">
+      <generate-deployable type="go.Agent" extends="generic.Folder" />
+      <property name="targetDirectory" />
+      <property name="server" kind="ci" referenced-type="go.DeployedServer" />
+      <!-- admin properties -->
+      <property name="createScript" hidden="true" default="tws/install-go-agent.sh.ftl" />
+      <property name="createVerb" hidden="true" default="Install" />
+      <!-- we want this to come after smoke tests for the server -->
+      <property name="createOrder" kind="integer" hidden="true" default="130" />
+      <property name="destroyScript" hidden="true" default="tws/uninstall-go-agent.sh.ftl" />
+      <property name="destroyVerb" hidden="true" default="Uninstall" />
+    </type>
+
+    <type type="go.DeployedServer" extends="generic.ExecutedScriptWithDerivedArtifact" container-type="overthere.SshHost" deployable-type="go.Server">
+      <generate-deployable type="go.Server" extends="generic.Folder" />
+      <property name="targetDirectory" />
+      <property name="port" kind="integer" default="8153" />
+      <!-- admin properties -->
+      <property name="createScript" hidden="true" default="tws/install-go-server.sh.ftl" />
+      <property name="createVerb" hidden="true" default="Install" />
+    </type>
+
+    <type type="vagrant.SshHost" extends="byoc.SshHost">
+        <property name="os" kind="enum" enum-class="com.xebialabs.overthere.OperatingSystemFamily" hidden="true" default="UNIX" />
+        <property name="username" hidden="true" default="vagrant" />
+        <property name="password" hidden="true" default="vagrant" />
+        <property name="connectionType" kind="enum" enum-class="com.xebialabs.overthere.ssh.SshConnectionType" default="INTERACTIVE_SUDO" />
+        <property name="sudoUsername" hidden="true" default="root" />
+        <property name="vagrantHost" kind="ci" referenced-type="overthere.Host" />
+        <method name="showStatus" label="Show Vagrant status" delegate="shellScript" script="vagrant/show-status" host="${thisCi.vagrantHost}"/>
+    </type>
+
+    <type type="vagrant.HostTemplate" extends="byoc.HostTemplate">
+        <property name="templateName" description="The name of the vagrant instance" />
+        <property name="createCommand" hidden="true" default="vagrant up ${hostTemplate.templateName}" />
+        <property name="findIpAddressCommand" default="vagrant ssh ${hostTemplate.templateName} -c ifconfig" description="The command to invoke to determine the IP address of the new host. The output of the command will be matched against a regular expression" />
+        <property name="findIpAddressRegex" default="eth1.*?\s*inet addr:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+"
+            description="The regular expression to apply to the output of 'findIpAddressCommand'. The first matching group of the expression will be the IP address" />
+        <property name="destroyCommand" hidden="true" default="vagrant destroy -f ${hostTemplate.templateName}" />
+    </type>
+</synthetic>
